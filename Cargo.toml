@@ -1,0 +1,9 @@
+[package]
+name = "rusttracer"
+version = "0.1.0"
+authors = ["Lee Adams <lee@4d4ms.com>"]
+edition = "2019"
+
+[dependencies]
+png = "0.14.0"
+cgmath = "0.16.1"
