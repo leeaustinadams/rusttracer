@@ -56,16 +56,60 @@ struct Light {
 }
 
 #[derive(Debug)]
-struct Object {
+struct Sphere {
     id: i32,
     position: Point,
     radius: f32,
 }
 
+trait Intersectable {
+    /// Returns point and normal of the intersection with ray, or None
+    fn intersect(&self, ray: &Ray) -> Option<(Point, Vector)>;
+}
+
+impl Intersectable for Sphere {
+    fn intersect(&self, ray: &Ray) -> Option<(Point, Vector)> {
+        let oc = ray.point - self.position;
+        let a = ray.direction.dot(ray.direction);
+        let b = 2.0 * oc.dot(ray.direction);
+        let c = oc.dot(oc) - self.radius * self.radius;
+        let discriminant = b * b - 4.0 * a * c;
+        if discriminant > 0.0 {
+            let t = (-b - discriminant.sqrt()) / (2.0 * a);
+            let hit_point = ray.point + (ray.direction * t);
+            Some((hit_point, (hit_point - self.position).normalize()))
+        } else {
+            None
+        }
+    }
+}
+
+
+#[derive(Debug)]
+struct Plane {
+    id: i32,
+    point: Point,
+    normal: Vector,
+}
+
+impl Intersectable for Plane {
+    fn intersect(&self, ray: &Ray) -> Option<(Point, Vector)> {
+        let denominator = self.normal.dot(ray.direction);
+        if denominator < 0.0 {
+            let t = (self.point - ray.point).dot(self.normal) / denominator;
+            Some((ray.point + ray.direction * t, self.normal))
+        } else {
+            None
+        }
+    }
+}
+
 fn main() {
     let lights = vec![Light {position: Point::new(0.0, 100.0, 0.0) }];
-    let objects = vec![Object {id: 0, position: Point::new(-10.0, 0.0, -100.0), radius: 20.0},
-                       Object {id: 1, position: Point::new( 10.0, 0.0, -100.0), radius: 20.0}];
+    let sphere1: Sphere = Sphere {id: 0, position: Point::new(-10.0, 0.0, -100.0), radius: 20.0};
+    let sphere2: Sphere = Sphere {id: 1, position: Point::new( 10.0, 0.0, -100.0), radius: 20.0};
+    let plane1 = Plane {id: 2, point: Point::new(0.0, -10.0, 0.0), normal: Vector::new(0.0, 1.0, 0.0)};
+    let objects: Vec<&Intersectable> = vec![&sphere1, &sphere2, &plane1];
     let image_width = 640u32;
     let image_height = 480u32;
     let f_image_width = image_width as f32;
@@ -127,31 +171,15 @@ fn calculate_primary_ray(_x: u16, _y: u16) -> Ray {
     Ray { point: Point::origin(), direction: Vector::new(0.0, 0.0, 1.0) }
 }
 
-/// Returns point and normal of the intersection of ray with sphere, or None
-fn intersect_sphere(ray: &Ray, sphere: &Object) -> Option<(Point, Vector)> {
-    let oc = ray.point - sphere.position;
-    let a = ray.direction.dot(ray.direction);
-    let b = 2.0 * oc.dot(ray.direction);
-    let c = oc.dot(oc) - sphere.radius * sphere.radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant > 0.0 {
-        let t = (-b - discriminant.sqrt()) / (2.0 * a);
-        let hit_point = ray.point + (ray.direction * t);
-        Some((hit_point, (hit_point - sphere.position).normalize()))
-    } else {
-        None
-    }
-}
-
 /// Returns object, point, and normal of the closest intersection of ray with objects, or None
-fn intersect_objects<'a>(ray: &Ray, objects: &'a Vec<Object>) -> Option<(&'a Object, Point, Vector)> {
+fn intersect_objects<'a>(ray: &Ray, objects: &'a Vec<&'a Intersectable>) -> Option<(&'a Intersectable, Point, Vector)> {
     let mut closest = None;
     let mut closest_distance_squared = std::f32::MAX;
     for obj in objects {
-        if let Some(hit) = intersect_sphere(ray, obj) {
+        if let Some(hit) = obj.intersect(ray) {
             let distance_squared = (hit.0 - ray.point).magnitude2();
             if distance_squared < closest_distance_squared {
-                closest = Some((obj, hit.0, hit.1));
+                closest = Some((*obj, hit.0, hit.1));
                 closest_distance_squared = distance_squared;
             }
         }
