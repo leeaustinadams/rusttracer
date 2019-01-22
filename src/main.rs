@@ -64,7 +64,8 @@ struct Object {
 
 fn main() {
     let lights = vec![Light {position: Point::new(0.0, 100.0, 0.0) }];
-    let objects = vec![Object {id: 0, position: Point::new(0.0, 0.0, -100.0), radius: 20.0}];
+    let objects = vec![Object {id: 0, position: Point::new(-10.0, 0.0, -100.0), radius: 20.0},
+                       Object {id: 1, position: Point::new( 10.0, 0.0, -100.0), radius: 20.0}];
     let image_width = 640u32;
     let image_height = 480u32;
     let f_image_width = image_width as f32;
@@ -145,11 +146,13 @@ fn intersect_sphere(ray: &Ray, sphere: &Object) -> Option<(Point, Vector)> {
 /// Returns object, point, and normal of the closest intersection of ray with objects, or None
 fn intersect_objects<'a>(ray: &Ray, objects: &'a Vec<Object>) -> Option<(&'a Object, Point, Vector)> {
     let mut closest = None;
+    let mut closest_distance_squared = std::f32::MAX;
     for obj in objects {
-        if let Some(i) = intersect_sphere(ray, obj) {
-            if let Some(c) = closest {
-            } else {
-                closest = Some((obj, i.0, i.1));
+        if let Some(hit) = intersect_sphere(ray, obj) {
+            let distance_squared = (hit.0 - ray.point).magnitude2();
+            if distance_squared < closest_distance_squared {
+                closest = Some((obj, hit.0, hit.1));
+                closest_distance_squared = distance_squared;
             }
         }
     }
