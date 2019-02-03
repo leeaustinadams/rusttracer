@@ -31,9 +31,9 @@ impl<'a> Intersectable for Sphere<'a> {
     fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector)> {
         let oc = ray.point - self.position;
         let a = ray.direction.dot(ray.direction);
-        let b = 2.0 * oc.dot(ray.direction);
+        let b = oc.dot(ray.direction);
         let c = oc.dot(oc) - self.radius * self.radius;
-        let discriminant = b * b - 4.0 * a * c;
+        let discriminant = b * b - a * c;
         if discriminant > 0.0 {
             let discriminant_sqrt = discriminant.sqrt();
             let t1 = (-b - discriminant_sqrt) / a;

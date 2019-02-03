@@ -18,13 +18,12 @@ pub struct Lambertian {
 impl Material for Lambertian {
     fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray) {
         let target = point + normal + random_in_unit_sphere();
-        let direction = (target - point).normalize();
-        (self.albedo, Ray {point: *point, direction: *normal})
+        (self.albedo, Ray {point: *point, direction: target - point})
     }
 }
 
 fn random_in_unit_sphere() -> Vector {
-    let between = Uniform::from(-0.5..0.5);
+    let between = Uniform::from(-1.0..1.0);
     let mut rng = rand::thread_rng();
 
     loop {
@@ -35,4 +34,8 @@ fn random_in_unit_sphere() -> Vector {
             break v;
         }
     }
+}
+
+fn reflect(v: &Vector, normal: &Vector) -> Vector {
+    v - 2.0 * v.dot(*normal) * normal
 }

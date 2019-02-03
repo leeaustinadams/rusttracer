@@ -1,39 +1,49 @@
-extern crate cgmath;
+extern crate rand;
+use rand::distributions::{Distribution, Uniform};
 
+use std::env;
 use std::path::Path;
 use std::fs::File;
 use std::io::BufWriter;
 
 use png::HasParameters;
 
+extern crate cgmath;
 use cgmath::prelude::*;
-use cgmath::{Deg, Rad};
+use cgmath::Deg;
 
 mod geo;
 mod color;
 mod material;
+mod camera;
 
+use crate::camera::Camera;
 use crate::color::Color;
 use crate::geo::{Point, Sphere, Plane, Ray, Vector, Intersectable};
 use crate::material::Lambertian;
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
     // let lights = vec![Light {position: Point::new(0.0, 100.0, 0.0) }];
-    let material_a: Lambertian = Lambertian { albedo: Color::new(1.0, 1.0, 0.5, 1.0) };
-    let material_b: Lambertian = Lambertian { albedo: Color::new(1.0, 0.0, 0.0, 1.0) };
-    let sphere1: Sphere = Sphere {position: Point::new(0.0, 10.0, -100.0), radius: 20.0, material: &material_a};
-    let plane1 = Plane {point: Point::new(0.0, -10.0, 0.0), normal: Vector::new(0.0, 1.0, 0.0), material: &material_b};
-    let objects: Vec<&Intersectable> = vec![&sphere1];
+    let material_a: Lambertian = Lambertian { albedo: Color::new(0.7, 0.7, 0.7, 1.0) };
+    let material_b: Lambertian = Lambertian { albedo: Color::new(0.0, 0.5, 0.0, 1.0) };
+    let sphere1: Sphere = Sphere {position: Point::new(0.0, 20.0, 0.0), radius: 20.0, material: &material_a};
+    let plane1 = Plane {point: Point::new(0.0, 0.0, 0.0), normal: Vector::unit_y(), material: &material_b};
+    let objects: Vec<&Intersectable> = vec![&sphere1, &plane1];
     let image_width = 640u32;
     let image_height = 480u32;
+    let sample_count: i32 = args[1].parse().unwrap();
     let f_image_width = image_width as f32;
     let f_image_height = image_height as f32;
 
     let inverse_width = 1.0 / f_image_width;
     let inverse_height = 1.0 / f_image_height;
-    let fov = Deg(0.5 * 30.0);
     let aspect_ratio = f_image_width * inverse_height;
-    let angle = Rad::from(fov).tan();
+    let cam = Camera::look(Point::new(0.0, 10.0, 100.0), Point::new(0.0, 0.0, 0.0), -Vector::unit_y(), Deg(90.0), aspect_ratio);
+
+    let between = Uniform::from(0.0..1.0);
+    let mut rng = rand::thread_rng();
 
     if let Some(size) = (image_width as usize).checked_mul(image_height as usize) {
         println!("Size is {:?}", size);
@@ -43,10 +53,14 @@ fn main() {
             for x in 0 .. image_width {
                 let f_x = x as f32;
                 let pixel_index = (y * image_width + x) as usize;
-                let xx = (2.0 * ((f_x + 0.5) * inverse_width) - 1.0) * angle * aspect_ratio;
-                let yy = (1.0 - 2.0 * ((f_y + 0.5) * inverse_height)) * angle;
-                let primary_ray = Ray { point: Point::origin(), direction: Vector::new(xx, yy, -1.0).normalize() };
-                image[pixel_index] = calc(&primary_ray, 0.0, std::f32::MAX, &objects, 0).saturate();
+                let mut color = Color::black();
+                for s in 0 .. sample_count {
+                    let u = (f_x + between.sample(&mut rng)) * inverse_width;
+                    let v = (f_y + between.sample(&mut rng)) * inverse_height;
+                    let ray = cam.get_ray(u, v);
+                    color += calc(&ray, 0.0, std::f32::MAX, &objects, 0).saturate();
+                }
+                image[pixel_index] = color / sample_count as f32;
             }
         }
         write_png(image_width, image_height, &convert_to_rgb8(&image));
@@ -57,24 +71,34 @@ fn calc(ray: &Ray, t_min: f32, t_max: f32, objects: &Vec<&Intersectable>, depth:
     if let Some((obj, point, normal)) = intersect_objects(ray, t_min, t_max, objects) {
         let (attenuation, scatter) = obj.color(ray, &point, &normal);
 
-        if depth < 4 {
-            attenuation * 0.9 * calc(&scatter, 0.001, 1.0, objects, depth + 1).saturate()
+        // Debug depth
+        //Color::grey(1.0 - (point - ray.point).magnitude().log(1000.0)).saturate()
+        // Debug normal
+        //Color::new(normal.x, normal.y, normal.z, 1.0).saturate()
+
+        if depth < 10 {
+            attenuation * calc(&scatter, 0.001, std::f32::MAX, objects, depth + 1)
         } else {
-            Color::black()
+            attenuation
         }
-        // Color {r: (normal.x),
-        //        g: (normal.y),
-        //        b: (normal.z),
-        //        a: 1.0}
     } else {
-        let t = 0.5 * (ray.direction.y + 1.0);
-        Color::white() * t + Color::black() * (1.0 - t)
+        sky(ray)
     }
+}
+
+fn sunset(ray: &Ray) -> Color {
+    let t = 0.5 * (ray.direction.normalize().y + 1.0);
+    Color::black() * t + Color::new(0.7, 0.2, 0.0, 1.0) * (1.0 - t)
+}
+
+fn sky(ray: &Ray) -> Color {
+    let t = 0.5 * (ray.direction.normalize().y + 1.0);
+    Color::new(0.2, 0.2, 1.0, 1.0) * t + Color::white() * (1.0 - t)
 }
 
 fn gamma2(color: &Color) -> (u8, u8, u8) {
     ((color.r.sqrt() * 255.99) as u8,
-     (color.g.sqrt() * 255.99)as u8,
+     (color.g.sqrt() * 255.99) as u8,
      (color.b.sqrt() * 255.99) as u8)
 }
 
