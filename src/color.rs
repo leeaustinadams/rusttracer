@@ -14,6 +14,10 @@ impl Color {
         Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }
     }
 
+    pub fn grey(v: f32) -> Color {
+        Color { r: v, g: v, b: v, a: 1.0 }
+    }
+
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color { r, g, b, a }
     }
@@ -37,6 +41,17 @@ impl std::ops::Mul<f32> for Color {
     }
 }
 
+impl std::ops::Div<f32> for Color {
+    type Output = Color;
+
+    fn div(self, scalar: f32) -> Color {
+        Color {r: self.r / scalar,
+               g: self.g / scalar,
+               b: self.b / scalar,
+               a: self.a}
+    }
+}
+
 impl std::ops::Mul for Color {
     type Output = Color;
 
@@ -56,5 +71,13 @@ impl std::ops::Add for Color {
                g: self.g + rhs.g,
                b: self.b + rhs.b,
                a: self.a}
+    }
+}
+
+impl std::ops::AddAssign for Color {
+    fn add_assign(&mut self, rhs: Color) {
+        self.r += rhs.r;
+        self.g += rhs.g;
+        self.b += rhs.b;
     }
 }
