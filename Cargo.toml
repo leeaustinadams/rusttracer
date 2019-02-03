@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 png = "0.14.0"
 cgmath = "0.16.1"
+rand = "0.6.4"
