@@ -3,7 +3,6 @@ extern crate cgmath;
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
 
-use crate::color::Color;
 use crate::material::Material;
 
 pub type Point = Point3<f32>;
@@ -17,18 +16,27 @@ pub struct Ray {
 
 pub trait Intersectable {
     /// Returns point and normal of the intersection with ray, or None
-    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector)>;
-    fn color(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray);
+    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector, Vector)>;
+
+    fn material(&self) -> &dyn Material;
 }
 
 pub struct Sphere<'a> {
     pub position: Point,
     pub radius: f32,
-    pub material: &'a Material,
+    pub material: &'a dyn Material,
+}
+
+fn sphereUVW(p: &Point) -> Vector {
+    let phi = p.z.atan2(p.x);
+    let theta = p.y.asin();
+    Vector::new(1.0 - (phi + std::f32::consts::PI) / (2.0 * std::f32::consts::PI),
+                (theta + std::f32::consts::PI / 2.0) / std::f32::consts::PI,
+                0.0)
 }
 
 impl<'a> Intersectable for Sphere<'a> {
-    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector)> {
+    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector, Vector)> {
         let oc = ray.point - self.position;
         let a = ray.direction.dot(ray.direction);
         let b = oc.dot(ray.direction);
@@ -39,12 +47,14 @@ impl<'a> Intersectable for Sphere<'a> {
             let t1 = (-b - discriminant_sqrt) / a;
             if t1 <= t_max && t1 >= t_min {
                 let hit_point = ray.point + (ray.direction * t1);
-                Some((hit_point, (hit_point - self.position).normalize()))
+                let uvw = sphereUVW(&hit_point);
+                Some((hit_point, (hit_point - self.position).normalize(), uvw))
             } else {
                 let t2 = (-b + discriminant_sqrt) / a;
                 if t2 <= t_max && t2 >= t_min {
                     let hit_point = ray.point + (ray.direction * t2);
-                    Some((hit_point, (hit_point - self.position).normalize()))
+                    let uvw = sphereUVW(&hit_point);
+                    Some((hit_point, (hit_point - self.position).normalize(), uvw))
                 } else {
                     None
                 }
@@ -54,24 +64,24 @@ impl<'a> Intersectable for Sphere<'a> {
         }
     }
 
-    fn color(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray) {
-        self.material.scatter(ray, point, normal)
+    fn material(&self) -> &dyn Material {
+        self.material
     }
 }
 
 pub struct Plane<'a> {
     pub point: Point,
     pub normal: Vector,
-    pub material: &'a Material
+    pub material: &'a dyn Material
 }
 
 impl<'a> Intersectable for Plane<'a> {
-    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector)> {
+    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector, Vector)> {
         let denominator = self.normal.dot(ray.direction);
         if denominator < 0.0 {
             let t = (self.point - ray.point).dot(self.normal) / denominator;
             if t <= t_max && t >= t_min {
-                Some((ray.point + ray.direction * t, self.normal))
+                Some((ray.point + ray.direction * t, self.normal, Vector::new(0.0, 0.0, 0.0)))
             } else {
                 None
             }
@@ -80,7 +90,7 @@ impl<'a> Intersectable for Plane<'a> {
         }
     }
 
-    fn color(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray) {
-        self.material.scatter(ray, point, normal)
+    fn material(&self) -> &dyn Material {
+        self.material
     }
 }

@@ -8,7 +8,8 @@ use crate::color::Color;
 use crate::geo::{Point, Ray, Vector};
 
 pub trait Material {
-    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray);
+    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32);
+    fn emitted(&self, uvw: &Vector, ray: &Vector) -> Color;
 }
 
 pub struct Lambertian {
@@ -16,9 +17,14 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray) {
+    fn scatter(&self, _ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
         let target = point + normal + random_in_unit_sphere();
-        (self.albedo, Ray {point: *point, direction: target - point})
+        let direction = (target - point).normalize();
+        (self.albedo, Ray {point: *point, direction}, normal.dot(direction) / std::f32::consts::PI)
+    }
+
+    fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
+        Color::black()
     }
 }
 
@@ -38,4 +44,35 @@ fn random_in_unit_sphere() -> Vector {
 
 fn reflect(v: &Vector, normal: &Vector) -> Vector {
     v - 2.0 * v.dot(*normal) * normal
+}
+
+pub struct Metal {
+    pub albedo: Color,
+    pub shinyness: f32,
+}
+
+impl Material for Metal {
+    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
+        let dir = reflect(&ray.direction, normal);
+        (self.albedo, Ray {point: *point, direction: dir}, normal.dot(dir) / std::f32::consts::PI)
+    }
+
+    fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
+        Color::black()
+    }
+}
+
+pub struct DiffuseLight {
+    pub color: Color,
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
+        let dir = reflect(&ray.direction, normal);
+        (Color::black(), Ray {point: *point, direction: dir}, normal.dot(dir) / std::f32::consts::PI)
+    }
+
+    fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
+        self.color
+    }
 }
