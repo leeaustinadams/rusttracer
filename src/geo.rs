@@ -1,5 +1,7 @@
 extern crate cgmath;
 
+use std::fmt;
+
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
 
@@ -14,13 +16,14 @@ pub struct Ray {
     pub direction: Vector
 }
 
-pub trait Intersectable {
+pub trait Intersectable: fmt::Debug {
     /// Returns point and normal of the intersection with ray, or None
     fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector, Vector)>;
 
     fn material(&self) -> &dyn Material;
 }
 
+#[derive(Debug)]
 pub struct Sphere<'a> {
     pub position: Point,
     pub radius: f32,
@@ -69,6 +72,7 @@ impl<'a> Intersectable for Sphere<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct Plane<'a> {
     pub point: Point,
     pub normal: Vector,

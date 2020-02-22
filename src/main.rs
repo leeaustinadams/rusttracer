@@ -51,6 +51,10 @@ fn main() {
     let between = Uniform::from(0.0..1.0);
     let mut rng = rand::thread_rng();
 
+    for obj in &objects {
+        println!("{:?}", obj);
+    }
+
     if let Some(size) = (image_width as usize).checked_mul(image_height as usize) {
         println!("Size is {:?}", size);
         let mut image: Vec<Color> = vec![Color::black(); size];

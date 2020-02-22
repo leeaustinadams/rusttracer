@@ -1,4 +1,6 @@
 extern crate rand;
+
+use std::fmt;
 use rand::distributions::{Distribution, Uniform};
 
 extern crate cgmath;
@@ -7,11 +9,12 @@ use cgmath::InnerSpace;
 use crate::color::Color;
 use crate::geo::{Point, Ray, Vector};
 
-pub trait Material {
+pub trait Material: fmt::Debug {
     fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32);
     fn emitted(&self, uvw: &Vector, ray: &Vector) -> Color;
 }
 
+#[derive(Debug)]
 pub struct Lambertian {
     pub albedo: Color,
 }
@@ -46,6 +49,7 @@ fn reflect(v: &Vector, normal: &Vector) -> Vector {
     v - 2.0 * v.dot(*normal) * normal
 }
 
+#[derive(Debug)]
 pub struct Metal {
     pub albedo: Color,
     pub shinyness: f32,
@@ -62,6 +66,7 @@ impl Material for Metal {
     }
 }
 
+#[derive(Debug)]
 pub struct DiffuseLight {
     pub color: Color,
 }
