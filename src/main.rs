@@ -19,7 +19,7 @@ mod camera;
 
 use crate::camera::Camera;
 use crate::color::Color;
-use crate::geo::{Point, Sphere, Plane, Ray, Vector, Intersectable};
+use crate::geo::{Point, Sphere, Plane, Ray, Vector, Triangle, Intersectable};
 use crate::material::{Lambertian, Metal, DiffuseLight};
 
 fn main() {
@@ -32,10 +32,11 @@ fn main() {
     let material_d: Metal = Metal { albedo: Color::new(0.0, 0.0, 0.5, 1.0), shinyness: 0.5 };
     let diffuse_light: DiffuseLight = DiffuseLight { color: Color::new(0.5, 0.5, 0.5, 1.0) };
     let sphere1: Sphere = Sphere {position: Point::new(0.0, 20.0, 0.0), radius: 20.0, material: &material_a};
-    let sphere2: Sphere = Sphere {position: Point::new(5.0, 5.0, 25.0), radius: 5.0, material: &material_c};
-    let sphere3: Sphere = Sphere {position: Point::new(25.0, 5.0, 5.0), radius: 5.0, material: &diffuse_light};
+    let sphere2: Sphere = Sphere {position: Point::new(-5.0, 5.0, 25.0), radius: 5.0, material: &material_c};
+    let sphere3: Sphere = Sphere {position: Point::new(5.0, 5.0, 25.0), radius: 5.0, material: &diffuse_light};
     let plane1 = Plane {point: Point::new(0.0, 0.0, 0.0), normal: Vector::unit_y(), material: &material_b};
-    let objects: Vec<&dyn Intersectable> = vec![&sphere1, &sphere2, &sphere3, &plane1];
+    let triangle1 = Triangle::new(Point::new(-20.0, 0.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(0.0, 20.0, 0.0), &material_a);
+    let objects: Vec<&dyn Intersectable> = vec![&plane1, &sphere2, &sphere3, &triangle1];
     let image_width = 640u32;
     let image_height = 480u32;
     let sample_count: i32 = args[1].parse().unwrap();

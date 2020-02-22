@@ -98,3 +98,58 @@ impl<'a> Intersectable for Plane<'a> {
         self.material
     }
 }
+
+#[derive(Debug)]
+pub struct Triangle<'a> {
+    pub a: Point,
+    pub b: Point,
+    pub c: Point,
+    pub ab: Vector,
+    pub ac: Vector,
+    pub bc: Vector,
+    pub normal: Vector,
+    pub material: &'a dyn Material
+}
+
+// Counter clockwise winding order
+impl<'a> Triangle<'a> {
+    pub fn new(a: Point, b: Point, c: Point, material: &dyn Material) -> Triangle {
+        let ab = b - a;
+        let ac = c - a;
+        let bc = c - b;
+        let normal = (ab.cross(ac)).normalize();
+        Triangle { a, b, c, ab: ab, ac: ac, bc: bc, normal, material }
+    }
+}
+
+impl<'a> Intersectable for Triangle<'a> {
+    fn intersect(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<(Point, Vector, Vector)> {
+        let denominator = self.normal.dot(ray.direction);
+        if denominator < 0.0 {
+            let t = (self.a - ray.point).dot(self.normal) / denominator;
+            if t <= t_max && t >= t_min {
+                let point_on_plane = ray.point + ray.direction * t;
+                let ap = point_on_plane - self.a;
+                let bp = point_on_plane - self.b;
+                let ab_dot = ap.dot(self.ab.normalize());
+                let ac_dot = ap.dot(self.ac.normalize());
+                let bc_dot = bp.dot(self.bc.normalize());
+                if ab_dot >= 0.0 && ab_dot  <= self.ab.magnitude() &&
+                    ac_dot >= 0.0 && ac_dot <= self.ac.magnitude() &&
+                    bc_dot >= 0.0 && bc_dot <= self.bc.magnitude() {
+                    Some((point_on_plane, self.normal, Vector::new(0.0, 0.0, 0.0)))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn material(&self) -> &dyn Material {
+        self.material
+    }
+}
