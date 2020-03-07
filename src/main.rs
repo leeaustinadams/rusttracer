@@ -26,17 +26,18 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // let lights = vec![Light {position: Point::new(0.0, 100.0, 0.0) }];
-    let material_a: Metal = Metal { albedo: Color::new(0.7, 0.7, 0.7, 1.0), shinyness: 0.5};
-    let material_b: Lambertian = Lambertian { albedo: Color::new(0.0, 0.5, 0.0, 1.0) };
-    let material_c: Lambertian = Lambertian { albedo: Color::new(0.5, 0.0, 0.0, 1.0) };
-    let material_d: Metal = Metal { albedo: Color::new(0.0, 0.0, 0.5, 1.0), shinyness: 0.5 };
+    let chrome: Metal = Metal { albedo: Color::new(0.7, 0.7, 0.7, 1.0), shinyness: 0.5};
+    let green: Lambertian = Lambertian { albedo: Color::new(0.0, 0.5, 0.0, 1.0) };
+    let red: Lambertian = Lambertian { albedo: Color::new(0.5, 0.0, 0.0, 1.0) };
+    let blue_metal: Metal = Metal { albedo: Color::new(0.0, 0.0, 0.5, 1.0), shinyness: 0.5 };
     let diffuse_light: DiffuseLight = DiffuseLight { color: Color::new(0.5, 0.5, 0.5, 1.0) };
-    let sphere1: Sphere = Sphere {position: Point::new(0.0, 20.0, 0.0), radius: 20.0, material: &material_a};
-    let sphere2: Sphere = Sphere {position: Point::new(-5.0, 5.0, 25.0), radius: 5.0, material: &material_c};
-    let sphere3: Sphere = Sphere {position: Point::new(5.0, 5.0, 25.0), radius: 5.0, material: &diffuse_light};
-    let plane1 = Plane {point: Point::new(0.0, 0.0, 0.0), normal: Vector::unit_y(), material: &material_b};
-    let triangle1 = Triangle::new(Point::new(-20.0, 0.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(0.0, 20.0, 0.0), &material_a);
-    let objects: Vec<&dyn Intersectable> = vec![&plane1, &sphere2, &sphere3, &triangle1];
+    let light: Sphere = Sphere {position: Point::new(0.0, 5.0, 25.0), radius: 5.0, material: &diffuse_light};
+    let red_sphere: Sphere = Sphere {position: Point::new(-10.0, 5.0, 25.0), radius: 5.0, material: &red};
+    let blue_sphere: Sphere = Sphere {position: Point::new(10.0, 5.0, 25.0), radius: 5.0, material: &blue_metal};
+    let ground = Plane {point: Point::new(0.0, 0.0, 0.0), normal: Vector::unit_y(), material: &green};
+    let mirror1 = Triangle::new(Point::new(-20.0, 0.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(-20.0, 40.0, 0.0), &chrome);
+    let mirror2 = Triangle::new(Point::new(-20.0, 40.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(2.0, 40.0, 0.0), &chrome);
+    let objects: Vec<&dyn Intersectable> = vec![&ground, &light, &red_sphere, &blue_sphere, &mirror1, &mirror2];
     let image_width = 640u32;
     let image_height = 480u32;
     let sample_count: i32 = args[1].parse().unwrap();
@@ -88,7 +89,6 @@ fn calc(ray: &Ray, t_min: f32, t_max: f32, objects: &Vec<&dyn Intersectable>, de
         //Color::grey(1.0 - (point - ray.point).magnitude().log(1000.0)).saturate()
         // Debug normal
         //Color::new(normal.x, normal.y, normal.z, 1.0).saturate()
-
         if depth < 10 {
             emitted + albedo * calc(&scatter, 0.001, std::f32::MAX, objects, depth + 1)
         } else {

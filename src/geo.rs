@@ -30,7 +30,7 @@ pub struct Sphere<'a> {
     pub material: &'a dyn Material,
 }
 
-fn sphereUVW(p: &Point) -> Vector {
+fn sphere_uvw(p: &Point) -> Vector {
     let phi = p.z.atan2(p.x);
     let theta = p.y.asin();
     Vector::new(1.0 - (phi + std::f32::consts::PI) / (2.0 * std::f32::consts::PI),
@@ -50,13 +50,13 @@ impl<'a> Intersectable for Sphere<'a> {
             let t1 = (-b - discriminant_sqrt) / a;
             if t1 <= t_max && t1 >= t_min {
                 let hit_point = ray.point + (ray.direction * t1);
-                let uvw = sphereUVW(&hit_point);
+                let uvw = sphere_uvw(&hit_point);
                 Some((hit_point, (hit_point - self.position).normalize(), uvw))
             } else {
                 let t2 = (-b + discriminant_sqrt) / a;
                 if t2 <= t_max && t2 >= t_min {
                     let hit_point = ray.point + (ray.direction * t2);
-                    let uvw = sphereUVW(&hit_point);
+                    let uvw = sphere_uvw(&hit_point);
                     Some((hit_point, (hit_point - self.position).normalize(), uvw))
                 } else {
                     None
