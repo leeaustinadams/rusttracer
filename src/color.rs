@@ -7,12 +7,13 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn black() -> Color {
-        Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
-    }
 
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color { r, g, b, a }
+    }
+
+    pub fn grey(v: f32) -> Color {
+        Color { r: v, g: v, b: v, a: 1.0 }
     }
 
     pub fn saturate(&self) -> Color {

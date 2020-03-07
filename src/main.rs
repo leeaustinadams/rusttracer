@@ -59,13 +59,13 @@ fn main() {
 
     if let Some(size) = (image_width as usize).checked_mul(image_height as usize) {
         println!("Size is {:?}", size);
-        let mut image: Vec<Color> = vec![Color::black(); size];
+        let mut image: Vec<Color> = vec![Color::grey(0.0); size];
         for y in 0 .. image_height {
             let f_y = y as f32;
             for x in 0 .. image_width {
                 let f_x = x as f32;
                 let pixel_index = (y * image_width + x) as usize;
-                let mut color = Color::black();
+                let mut color = Color::grey(0.0);
                 for _s in 0 .. sample_count {
                     let u = (f_x + between.sample(&mut rng)) * inverse_width;
                     let v = (f_y + between.sample(&mut rng)) * inverse_height;
@@ -85,10 +85,6 @@ fn calc(ray: &Ray, t_min: f32, t_max: f32, objects: &Vec<&dyn Intersectable>, de
         let emitted = mat.emitted(&uvw, &normal);
         let (albedo, scatter, _pdf) = mat.scatter(ray, &point, &normal);
 
-        // Debug depth
-        //Color::grey(1.0 - (point - ray.point).magnitude().log(1000.0)).saturate()
-        // Debug normal
-        //Color::new(normal.x, normal.y, normal.z, 1.0).saturate()
         if depth < 10 {
             emitted + albedo * calc(&scatter, 0.001, std::f32::MAX, objects, depth + 1)
         } else {
@@ -101,7 +97,7 @@ fn calc(ray: &Ray, t_min: f32, t_max: f32, objects: &Vec<&dyn Intersectable>, de
 
 // fn sunset(ray: &Ray) -> Color {
 //     let t = 0.5 * (ray.direction.normalize().y + 1.0);
-//     Color::black() * t + Color::new(0.7, 0.2, 0.0, 1.0) * (1.0 - t)
+//     Color::grey(0.0) * t + Color::new(0.7, 0.2, 0.0, 1.0) * (1.0 - t)
 // }
 
 fn sky(ray: &Ray) -> Color {

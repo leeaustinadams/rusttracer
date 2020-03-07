@@ -27,7 +27,7 @@ impl Material for Lambertian {
     }
 
     fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
-        Color::black()
+        Color::grey(0.0)
     }
 }
 
@@ -62,7 +62,7 @@ impl Material for Metal {
     }
 
     fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
-        Color::black()
+        Color::grey(0.0)
     }
 }
 
@@ -74,7 +74,7 @@ pub struct DiffuseLight {
 impl Material for DiffuseLight {
     fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
         let dir = reflect(&ray.direction, normal);
-        (Color::black(), Ray {point: *point, direction: dir}, normal.dot(dir) / std::f32::consts::PI)
+        (Color::grey(0.0), Ray {point: *point, direction: dir}, normal.dot(dir) / std::f32::consts::PI)
     }
 
     fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
