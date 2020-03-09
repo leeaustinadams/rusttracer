@@ -77,3 +77,26 @@ impl Material for DiffuseLight {
         self.color
     }
 }
+
+#[derive(Debug)]
+pub struct DebugDepth {}
+
+impl Material for DebugDepth {
+    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
+        let value = 1.0 - (point - ray.point).magnitude().log(1000.0);
+        (Color::grey(value).saturate(),
+         Ray {point: *point, direction: *normal},
+         0.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct DebugNormal {}
+
+impl Material for DebugNormal {
+    fn scatter(&self, _ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
+        (Color::new(normal.x, normal.y, normal.z, 1.0).saturate(),
+         Ray {point: *point, direction: *normal},
+         0.0)
+    }
+}
