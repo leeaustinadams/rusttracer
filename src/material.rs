@@ -11,7 +11,10 @@ use crate::geo::{Point, Ray, Vector};
 
 pub trait Material: fmt::Debug {
     fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32);
-    fn emitted(&self, uvw: &Vector, ray: &Vector) -> Color;
+
+    fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
+        Color::grey(0.0)
+    }
 }
 
 #[derive(Debug)]
@@ -26,9 +29,6 @@ impl Material for Lambertian {
         (self.albedo, Ray {point: *point, direction}, normal.dot(direction) / std::f32::consts::PI)
     }
 
-    fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
-        Color::grey(0.0)
-    }
 }
 
 fn random_in_unit_sphere() -> Vector {
@@ -59,10 +59,6 @@ impl Material for Metal {
     fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
         let dir = reflect(&ray.direction, normal);
         (self.albedo, Ray {point: *point, direction: dir}, normal.dot(dir) / std::f32::consts::PI)
-    }
-
-    fn emitted(&self, _uvw: &Vector, _ray: &Vector) -> Color {
-        Color::grey(0.0)
     }
 }
 
