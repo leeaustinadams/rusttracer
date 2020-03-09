@@ -1,7 +1,6 @@
 extern crate rand;
 use rand::distributions::{Distribution, Uniform};
 
-use std::env;
 use std::path::Path;
 use std::fs::File;
 use std::io::BufWriter;
@@ -22,27 +21,88 @@ use crate::color::Color;
 use crate::geo::{Point, Sphere, Plane, Ray, Vector, Triangle, Intersectable};
 use crate::material::{Lambertian, Metal, DiffuseLight};
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
+#[derive(Debug)]
+enum ParseError {
+    TooFewArgs,
+    InvalidInteger(String),
+}
 
-    // let lights = vec![Light {position: Point::new(0.0, 100.0, 0.0) }];
-    let chrome: Metal = Metal { albedo: Color::new(0.7, 0.7, 0.7, 1.0), shinyness: 0.5};
-    let green: Lambertian = Lambertian { albedo: Color::new(0.0, 0.5, 0.0, 1.0) };
-    let red: Lambertian = Lambertian { albedo: Color::new(0.5, 0.0, 0.0, 1.0) };
-    let blue_metal: Metal = Metal { albedo: Color::new(0.0, 0.0, 0.5, 1.0), shinyness: 0.5 };
-    let diffuse_light: DiffuseLight = DiffuseLight { color: Color::new(0.5, 0.5, 0.5, 1.0) };
-    let light: Sphere = Sphere {position: Point::new(0.0, 5.0, 25.0), radius: 5.0, material: &diffuse_light};
-    let red_sphere: Sphere = Sphere {position: Point::new(-10.0, 5.0, 25.0), radius: 5.0, material: &red};
-    let blue_sphere: Sphere = Sphere {position: Point::new(10.0, 5.0, 25.0), radius: 5.0, material: &blue_metal};
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::TooFewArgs => write!(f, "Too Few Args"),
+            ParseError::InvalidInteger(s) => write!(f, "Not an integer: {}", s)
+        }
+    }
+}
+
+struct ParseArgs(std::env::Args);
+
+impl ParseArgs {
+    fn new() -> ParseArgs {
+        ParseArgs(std::env::args())
+    }
+
+    fn require_arg(&mut self) -> Result<String, ParseError> {
+        match self.0.next() {
+            Some(s) => Ok(s),
+            None => Err(ParseError::TooFewArgs)
+        }
+    }
+}
+
+fn parse_u32(s: String) -> Result<u32, ParseError> {
+    match s.parse() {
+        Ok(val) => Ok(val),
+        Err(_) => Err(ParseError::InvalidInteger(s))
+    }
+}
+
+struct Options {
+    pub width: u32,
+    pub height: u32,
+    pub sample_count: u32,
+    pub output_name: String
+}
+
+fn parse_options() -> Result<Options, ParseError> {
+    let mut parse_args = ParseArgs::new();
+
+    parse_args.require_arg()?;
+    let width_str = parse_args.require_arg()?;
+    let width = parse_u32(width_str)?;
+    let height_str = parse_args.require_arg()?;
+    let height = parse_u32(height_str)?;
+    let sample_count_str = parse_args.require_arg()?;
+    let sample_count = parse_u32(sample_count_str)?;
+    let output_name = parse_args.require_arg()?;
+    Ok(Options { width, height, sample_count, output_name })
+}
+
+fn main() {
+    let options = match parse_options() {
+        Ok(args) => args,
+        Err(err) => {
+            println!("{}", err);
+            return;
+        }
+    };
+
+    let chrome = Metal { albedo: Color::new(0.7, 0.7, 0.7, 1.0), shinyness: 0.5};
+    let green = Lambertian { albedo: Color::new(0.0, 0.5, 0.0, 1.0) };
+    let red = Lambertian { albedo: Color::new(0.5, 0.0, 0.0, 1.0) };
+    let blue_metal = Metal { albedo: Color::new(0.0, 0.0, 0.5, 1.0), shinyness: 0.5 };
+    let diffuse_light = DiffuseLight { color: Color::new(0.5, 0.5, 0.5, 1.0) };
+    let light = Sphere {position: Point::new(0.0, 5.0, 25.0), radius: 5.0, material: &diffuse_light};
+    let red_sphere = Sphere {position: Point::new(-10.0, 5.0, 25.0), radius: 5.0, material: &red};
+    let blue_sphere = Sphere {position: Point::new(10.0, 5.0, 25.0), radius: 5.0, material: &blue_metal};
     let ground = Plane {point: Point::new(0.0, 0.0, 0.0), normal: Vector::unit_y(), material: &green};
     let mirror1 = Triangle::new(Point::new(-20.0, 0.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(-20.0, 40.0, 0.0), &chrome);
     let mirror2 = Triangle::new(Point::new(-20.0, 40.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(2.0, 40.0, 0.0), &chrome);
     let objects: Vec<&dyn Intersectable> = vec![&ground, &light, &red_sphere, &blue_sphere, &mirror1, &mirror2];
-    let image_width = 640u32;
-    let image_height = 480u32;
-    let sample_count: i32 = args[1].parse().unwrap();
-    let name = &args[2];
-    let f_image_width = image_width as f32;
+    let image_width = options.width;
+    let image_height = options.height;
+    let f_image_width =  image_width as f32;
     let f_image_height = image_height as f32;
 
     let inverse_width = 1.0 / f_image_width;
@@ -66,16 +126,16 @@ fn main() {
                 let f_x = x as f32;
                 let pixel_index = (y * image_width + x) as usize;
                 let mut color = Color::grey(0.0);
-                for _s in 0 .. sample_count {
+                for _s in 0 .. options.sample_count {
                     let u = (f_x + between.sample(&mut rng)) * inverse_width;
                     let v = (f_y + between.sample(&mut rng)) * inverse_height;
                     let ray = cam.get_ray(u, v);
                     color += calc(&ray, 0.0, std::f32::MAX, &objects, 0).saturate();
                 }
-                image[pixel_index] = color / sample_count as f32;
+                image[pixel_index] = color / options.sample_count as f32;
             }
         }
-        write_png(image_width, image_height, &convert_to_rgb8(&image), name);
+        write_png(image_width, image_height, &convert_to_rgb8(&image), &options.output_name);
     }
 }
 
