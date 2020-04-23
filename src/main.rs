@@ -167,26 +167,22 @@ fn calc(ray: &Ray, t_min: f32, t_max: f32, objects: &Vec<&dyn Intersectable>, de
     }
 }
 
-// fn sunset(ray: &Ray) -> Color {
-//     let t = 0.5 * (ray.direction.normalize().y + 1.0);
-//     Color::grey(0.0) * t + Color::new(0.7, 0.2, 0.0, 1.0) * (1.0 - t)
-// }
-
 fn sky(ray: &Ray) -> Color {
     let t = 0.5 * (ray.direction.normalize().y + 1.0);
     Color::new(0.02, 0.02, 0.1, 1.0) * t + Color::new(0.1, 0.1, 0.1, 1.0) * (1.0 - t)
 }
 
-fn gamma2(color: &Color) -> (u8, u8, u8) {
-    ((color.r.sqrt() * 255.99) as u8,
-     (color.g.sqrt() * 255.99) as u8,
-     (color.b.sqrt() * 255.99) as u8)
+fn gamma(color: &Color) -> (u8, u8, u8) {
+    let g = 1.0 / 2.2;
+    ((color.r.powf(g) * 255.99) as u8,
+     (color.g.powf(g) * 255.99) as u8,
+     (color.b.powf(g) * 255.99) as u8)
 }
 
 fn convert_to_rgb8(data: &Vec<Color>) -> Vec<u8> {
     let mut out = Vec::with_capacity(data.len() * 4);
     for c in data {
-        let (r, g, b) = gamma2(c);
+        let (r, g, b) = gamma(c);
         out.push(r);
         out.push(g);
         out.push(b);
