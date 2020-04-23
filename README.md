@@ -4,8 +4,15 @@ I've never written more than Hello World in Rust. I haven't written a raytracer 
 
 Anyways, what better project could there be than to write a raytracer in Rust?
 
+[**April 2020**]
+Added dialectric material
+Added rudimentary progress output
+Improve gamma encoding
+![](glass.png)
+
 [**February 2020**]  
 Added some materials, simple implementation of a diffuse light and metal materials
+![](diffuse_light.png)
 
 [**February 2019**]  
 Uses [cgmath](https://docs.rs/cgmath/0.17.0/cgmath/) to avoid reinventing vectors and affine transformations  
@@ -14,4 +21,3 @@ Follow along here and at [leeadams.dev](https://leeadams.dev)
 
 ![](hello_sphere.png)
 ![](spheres.png)
-![](diffuse_light.png)
