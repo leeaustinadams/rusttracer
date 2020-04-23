@@ -19,7 +19,7 @@ mod camera;
 use crate::camera::Camera;
 use crate::color::Color;
 use crate::geo::{Point, Sphere, Plane, Ray, Vector, Triangle, Intersectable};
-use crate::material::{Lambertian, Metal, DiffuseLight};
+use crate::material::{Lambertian, Metal, Dialectric, DiffuseLight};
 
 #[derive(Debug)]
 enum ParseError {
@@ -92,14 +92,16 @@ fn main() {
     let green = Lambertian { albedo: Color::new(0.0, 0.5, 0.0, 1.0) };
     let red = Lambertian { albedo: Color::new(0.5, 0.0, 0.0, 1.0) };
     let blue_metal = Metal { albedo: Color::new(0.0, 0.0, 0.5, 1.0), shinyness: 0.5 };
+    let glass = Dialectric { refractive_index: 1.1 };
     let diffuse_light = DiffuseLight { color: Color::new(0.5, 0.5, 0.5, 1.0) };
     let light = Sphere {position: Point::new(0.0, 5.0, 25.0), radius: 5.0, material: &diffuse_light};
     let red_sphere = Sphere {position: Point::new(-10.0, 5.0, 25.0), radius: 5.0, material: &red};
     let blue_sphere = Sphere {position: Point::new(10.0, 5.0, 25.0), radius: 5.0, material: &blue_metal};
+    let glass_sphere = Sphere {position: Point::new(5.0, 5.0, 35.0), radius: 5.0, material: &glass};
     let ground = Plane {point: Point::new(0.0, 0.0, 0.0), normal: Vector::unit_y(), material: &green};
     let mirror1 = Triangle::new(Point::new(-20.0, 0.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(-20.0, 40.0, 0.0), &chrome);
     let mirror2 = Triangle::new(Point::new(-20.0, 40.0, 0.0), Point::new(20.0, 0.0, 0.0), Point::new(2.0, 40.0, 0.0), &chrome);
-    let objects: Vec<&dyn Intersectable> = vec![&ground, &light, &red_sphere, &blue_sphere, &mirror1, &mirror2];
+    let objects: Vec<&dyn Intersectable> = vec![&ground, &light, &red_sphere, &blue_sphere, &glass_sphere, &mirror1, &mirror2];
     let image_width = options.width;
     let image_height = options.height;
     let f_image_width =  image_width as f32;

@@ -1,6 +1,7 @@
 extern crate rand;
 
 use std::fmt;
+use rand::prelude::*;
 use rand::distributions::{Distribution, Uniform};
 
 extern crate cgmath;
@@ -49,6 +50,23 @@ fn reflect(v: &Vector, normal: &Vector) -> Vector {
     v - 2.0 * v.dot(*normal) * normal
 }
 
+fn refract(v: &Vector, normal: &Vector, ni_over_nt: f32) -> Option<Vector> {
+    let unit_v = v.normalize();
+    let dt = unit_v.dot(*normal);
+    let discriminant = 1.0 - ni_over_nt * ni_over_nt * (1.0 - dt * dt);
+    if discriminant > 0.0 {
+        Some(ni_over_nt * (unit_v - normal * dt) - normal * discriminant.sqrt())
+    } else {
+        None
+    }
+}
+
+fn schlick(cosine: f32, refractive_index: f32) -> f32 {
+    let r0 = (1.0 - refractive_index) / (1.0 + refractive_index);
+    let r1 = r0 * r0;
+    return r1 + (1.0 - r1) * (1.0 - cosine).powf(5.0)
+}
+
 #[derive(Debug)]
 pub struct Metal {
     pub albedo: Color,
@@ -59,6 +77,40 @@ impl Material for Metal {
     fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
         let dir = reflect(&ray.direction, normal);
         (self.albedo, Ray {point: *point, direction: dir}, normal.dot(dir) / std::f32::consts::PI)
+    }
+}
+
+#[derive(Debug)]
+pub struct Dialectric {
+    pub refractive_index: f32,
+}
+
+impl Material for Dialectric {
+    fn scatter(&self, ray: &Ray, point: &Point, normal: &Vector) -> (Color, Ray, f32) {
+        let outward_normal: Vector;
+        let ni_over_nt: f32;
+        let cosine: f32;
+
+        if ray.direction.dot(*normal) > 0.0 {
+            outward_normal = -(*normal);
+            ni_over_nt = self.refractive_index;
+            cosine = self.refractive_index * ray.direction.dot(*normal) / ray.direction.magnitude();
+        } else {
+            outward_normal = *normal;
+            ni_over_nt = 1.0 / self.refractive_index;
+            cosine = -(ray.direction.dot(*normal)) / ray.direction.magnitude();
+        }
+
+        let mut dir = reflect(&ray.direction, normal);
+        if let Some(refracted) = refract(&ray.direction, &outward_normal, ni_over_nt) {
+            let reflect_probability = schlick(cosine, self.refractive_index);
+            let mut rng = rand::thread_rng();
+            if rng.gen::<f32>() > reflect_probability {
+                dir = refracted;
+            }
+        }
+
+        (Color::grey(1.0), Ray{point: *point, direction: dir}, 1.0)
     }
 }
 
