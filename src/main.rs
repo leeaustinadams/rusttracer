@@ -3,6 +3,7 @@ use rand::distributions::{Distribution, Uniform};
 
 use std::path::Path;
 use std::fs::File;
+use std::io::prelude::*;
 use std::io::BufWriter;
 
 use png::HasParameters;
@@ -119,6 +120,7 @@ fn main() {
         println!("{:?}", obj);
     }
 
+    let mut progress = 0.0;
     if let Some(size) = (image_width as usize).checked_mul(image_height as usize) {
         println!("Size is {:?}", size);
         let mut image: Vec<Color> = vec![Color::grey(0.0); size];
@@ -135,8 +137,16 @@ fn main() {
                     color += calc(&ray, 0.0, std::f32::MAX, &objects, 0).saturate();
                 }
                 image[pixel_index] = color / options.sample_count as f32;
+                let new_progress = (y * image_width + x) as f32 / size as f32;
+                if new_progress - progress > 0.1 {
+                    print!(".");
+                    std::io::stdout().flush();
+                    progress = new_progress;
+                }
             }
         }
+        println!("");
+        println!("Writing image to {}", options.output_name);
         write_png(image_width, image_height, &convert_to_rgb8(&image), &options.output_name);
     }
 }
